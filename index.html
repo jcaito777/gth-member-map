@@ -26,12 +26,18 @@
     --danger: #c0392b;
   }
 
+  html, body {
+    height: 100%;
+    width: 100%;
+    margin: 0;
+    padding: 0;
+    overflow: hidden;
+  }
+
   body {
     font-family: 'DM Sans', sans-serif;
     background: var(--cream);
     color: var(--text-dark);
-    min-height: 100vh;
-    overflow-x: hidden;
   }
 
   /* ── HEADER ── */
@@ -46,6 +52,8 @@
     top: 0;
     z-index: 200;
     border-bottom: 2px solid var(--gold);
+    width: 100%;
+    box-sizing: border-box;
   }
 
   .logo {
@@ -90,7 +98,8 @@
   .app-body {
     display: grid;
     grid-template-columns: 320px 1fr;
-    height: calc(100vh - 60px);
+    height: calc(100% - 60px);
+    width: 100%;
   }
 
   /* ── SIDEBAR ── */
@@ -714,6 +723,7 @@ function initMap() {
     return;
   }
   mapboxgl.accessToken = key;
+  localStorage.setItem('gth_mapbox_token', key);
   document.getElementById('apiNotice').style.display = 'none';
 
   map = new mapboxgl.Map({
@@ -900,6 +910,21 @@ function submitForm() {
 
 // ── INIT ──
 renderList();
+
+(function() {
+  const token = 'pk.eyJ1IjoiamNhaXRvNzc3IiwiYSI6ImNtbXR2cWczZDAwOWoycW9xMnUzY2dhZDgifQ.2-X_ABVjAvzZdBVZZ2yp7A';
+  document.getElementById('apiNotice').style.display = 'none';
+  mapboxgl.accessToken = token;
+  map = new mapboxgl.Map({
+    container: 'map',
+    style: 'mapbox://styles/mapbox/outdoors-v12',
+    center: [-96, 39],
+    zoom: 3.8,
+    minZoom: 2
+  });
+  map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+  map.on('load', () => { addPinsToMap(); renderList(); });
+})();
 </script>
 </body>
 </html>
