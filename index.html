@@ -532,7 +532,7 @@
 
     .app-body {
       grid-template-columns: 1fr;
-      grid-template-rows: 55vh auto;
+      grid-template-rows: 50vh auto;
       height: auto;
       min-height: calc(100vh - 52px);
     }
@@ -547,8 +547,8 @@
 
     .members-scroll { max-height: 380px; }
 
-    .map-wrap { order: 1; height: 55vh; min-height: 300px; }
-    #map { height: 100%; }
+    .map-wrap { order: 1; height: 50vh; min-height: 280px; }
+    #map { height: 100%; width: 100%; }
 
     .stats-bar {
       bottom: 10px;
@@ -972,6 +972,9 @@ renderList();
   });
   map.addControl(new mapboxgl.NavigationControl(), 'top-right');
   map.on('load', () => { addPinsToMap(); renderList(); });
+  // Force resize after fonts/layout settle
+  setTimeout(() => { map.resize(); }, 300);
+  window.addEventListener('resize', () => { map.resize(); });
 })();
 </script>
 </body>
