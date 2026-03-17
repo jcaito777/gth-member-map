@@ -1,0 +1,905 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>GTH Member Map – Girls That Hunt</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@500;600;700&family=DM+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.css" rel="stylesheet">
+<script src="https://api.mapbox.com/mapbox-gl-js/v3.3.0/mapbox-gl.js"></script>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --forest: #1a2e1a;
+    --forest-mid: #2d4a2d;
+    --gold: #c8993a;
+    --gold-light: #e8b84b;
+    --sage: #7aaa5a;
+    --sage-light: #a8cc8a;
+    --cream: #f5f0e8;
+    --cream-dark: #ede6d6;
+    --text-dark: #1a1f1a;
+    --text-mid: #4a5a4a;
+    --text-light: #7a8a7a;
+    --white: #ffffff;
+    --danger: #c0392b;
+  }
+
+  body {
+    font-family: 'DM Sans', sans-serif;
+    background: var(--cream);
+    color: var(--text-dark);
+    min-height: 100vh;
+    overflow-x: hidden;
+  }
+
+  /* ── HEADER ── */
+  .site-header {
+    background: var(--forest);
+    padding: 0 32px;
+    height: 60px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: sticky;
+    top: 0;
+    z-index: 200;
+    border-bottom: 2px solid var(--gold);
+  }
+
+  .logo {
+    font-family: 'Playfair Display', serif;
+    color: var(--gold);
+    font-size: 20px;
+    font-weight: 600;
+    letter-spacing: 0.02em;
+    text-decoration: none;
+  }
+
+  .logo span { color: var(--sage-light); font-weight: 500; font-size: 14px; margin-left: 8px; }
+
+  .header-right { display: flex; align-items: center; gap: 16px; }
+
+  .member-pill {
+    background: var(--forest-mid);
+    border: 1px solid var(--sage);
+    border-radius: 20px;
+    padding: 5px 14px;
+    font-size: 12px;
+    color: var(--sage-light);
+    font-weight: 500;
+  }
+
+  .btn-join {
+    background: var(--gold);
+    color: var(--forest);
+    border: none;
+    border-radius: 8px;
+    padding: 8px 20px;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    transition: background 0.2s;
+    letter-spacing: 0.01em;
+  }
+  .btn-join:hover { background: var(--gold-light); }
+
+  /* ── LAYOUT ── */
+  .app-body {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    height: calc(100vh - 60px);
+  }
+
+  /* ── SIDEBAR ── */
+  .sidebar {
+    background: var(--white);
+    border-right: 1px solid var(--cream-dark);
+    display: flex;
+    flex-direction: column;
+    overflow: hidden;
+  }
+
+  .sidebar-header {
+    padding: 20px 20px 14px;
+    border-bottom: 1px solid var(--cream-dark);
+  }
+
+  .sidebar-title {
+    font-family: 'Playfair Display', serif;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--forest);
+    margin-bottom: 10px;
+  }
+
+  .search-wrap { position: relative; margin-bottom: 12px; }
+  .search-wrap svg { position: absolute; left: 10px; top: 50%; transform: translateY(-50%); opacity: 0.4; }
+
+  .search-input {
+    width: 100%;
+    background: var(--cream);
+    border: 1px solid var(--cream-dark);
+    border-radius: 8px;
+    padding: 8px 12px 8px 34px;
+    font-size: 13px;
+    font-family: 'DM Sans', sans-serif;
+    color: var(--text-dark);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .search-input:focus { border-color: var(--sage); }
+
+  .filters { display: flex; gap: 6px; flex-wrap: wrap; }
+
+  .chip {
+    font-size: 11px;
+    font-family: 'DM Sans', sans-serif;
+    padding: 4px 11px;
+    border-radius: 20px;
+    border: 1px solid var(--cream-dark);
+    background: var(--cream);
+    color: var(--text-mid);
+    cursor: pointer;
+    transition: all 0.15s;
+    font-weight: 500;
+  }
+  .chip:hover { border-color: var(--sage); color: var(--forest); }
+  .chip.active { background: var(--forest); color: var(--sage-light); border-color: var(--forest); }
+
+  .members-scroll {
+    flex: 1;
+    overflow-y: auto;
+    scrollbar-width: thin;
+    scrollbar-color: var(--cream-dark) transparent;
+  }
+
+  .member-item {
+    padding: 12px 20px;
+    border-bottom: 1px solid var(--cream-dark);
+    cursor: pointer;
+    transition: background 0.12s;
+    display: flex;
+    align-items: flex-start;
+    gap: 11px;
+  }
+  .member-item:hover { background: var(--cream); }
+  .member-item.highlighted { background: #eef5e8; border-left: 3px solid var(--sage); }
+
+  .avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 13px;
+    font-weight: 600;
+    flex-shrink: 0;
+    color: var(--white);
+  }
+
+  .member-info { flex: 1; min-width: 0; }
+  .member-name { font-size: 13px; font-weight: 600; color: var(--text-dark); }
+  .member-location { font-size: 11px; color: var(--text-light); margin-top: 1px; }
+  .member-tags { display: flex; gap: 4px; flex-wrap: wrap; margin-top: 5px; }
+
+  .tag {
+    font-size: 10px;
+    padding: 2px 7px;
+    border-radius: 10px;
+    font-weight: 500;
+  }
+  .tag-species { background: #eef5e8; color: #3a6a1a; border: 1px solid #c0dc98; }
+  .tag-partner { background: #fff4e0; color: #8a5a10; border: 1px solid #f0c870; }
+  .tag-mentor  { background: #e8f0ff; color: #2a4aaa; border: 1px solid #b0c4f8; }
+  .tag-legacy  { background: var(--cream); color: var(--text-light); border: 1px solid var(--cream-dark); font-style: italic; }
+
+  .sidebar-footer {
+    padding: 12px 20px;
+    border-top: 1px solid var(--cream-dark);
+    background: var(--cream);
+  }
+  .count-line { font-size: 12px; color: var(--text-light); }
+  .count-line strong { color: var(--forest); }
+
+  /* ── MAP ── */
+  #map { width: 100%; height: 100%; }
+
+  /* ── POPUP ── */
+  .mapboxgl-popup-content {
+    padding: 0 !important;
+    border-radius: 12px !important;
+    overflow: hidden;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.18) !important;
+    min-width: 220px;
+  }
+  .mapboxgl-popup-close-button {
+    font-size: 18px;
+    color: var(--text-light);
+    right: 10px;
+    top: 8px;
+    z-index: 10;
+  }
+
+  .popup-inner { background: var(--white); }
+
+  .popup-header {
+    background: var(--forest);
+    padding: 16px 18px 14px;
+    display: flex;
+    align-items: center;
+    gap: 12px;
+  }
+
+  .popup-avatar {
+    width: 42px;
+    height: 42px;
+    border-radius: 50%;
+    background: var(--gold);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 15px;
+    font-weight: 700;
+    color: var(--forest);
+    flex-shrink: 0;
+    border: 2px solid var(--gold-light);
+  }
+
+  .popup-name {
+    font-family: 'Playfair Display', serif;
+    font-size: 16px;
+    font-weight: 600;
+    color: var(--white);
+  }
+
+  .popup-state { font-size: 12px; color: var(--sage-light); margin-top: 2px; }
+
+  .popup-body { padding: 14px 18px; }
+
+  .popup-field { margin-bottom: 10px; }
+  .popup-label { font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--text-light); font-weight: 600; margin-bottom: 4px; }
+  .popup-value { font-size: 13px; color: var(--text-dark); font-weight: 500; }
+  .popup-tags { display: flex; gap: 5px; flex-wrap: wrap; }
+
+  .popup-legacy {
+    background: var(--cream);
+    border: 1px dashed var(--cream-dark);
+    border-radius: 8px;
+    padding: 10px 12px;
+    font-size: 12px;
+    color: var(--text-light);
+    font-style: italic;
+    text-align: center;
+    margin-bottom: 10px;
+  }
+
+  .btn-connect {
+    width: 100%;
+    background: var(--forest);
+    color: var(--sage-light);
+    border: none;
+    border-radius: 8px;
+    padding: 10px;
+    font-size: 13px;
+    font-weight: 600;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+    transition: background 0.2s;
+    margin-top: 4px;
+  }
+  .btn-connect:hover { background: var(--forest-mid); }
+  .btn-connect.pro-only {
+    background: var(--cream);
+    color: var(--text-mid);
+    border: 1px solid var(--cream-dark);
+    cursor: default;
+  }
+
+  .pro-lock { font-size: 11px; color: var(--gold); margin-top: 6px; text-align: center; cursor: pointer; }
+  .pro-lock:hover { text-decoration: underline; }
+
+  /* ── MODAL (Join Form) ── */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(10, 20, 10, 0.7);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--white);
+    border-radius: 16px;
+    width: 100%;
+    max-width: 480px;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    animation: slideUp 0.25s ease;
+  }
+  @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
+
+  .modal-header {
+    background: var(--forest);
+    padding: 24px 28px 20px;
+    border-bottom: 2px solid var(--gold);
+  }
+
+  .modal-header h2 {
+    font-family: 'Playfair Display', serif;
+    font-size: 22px;
+    color: var(--white);
+    margin-bottom: 4px;
+  }
+
+  .modal-header p { font-size: 13px; color: var(--sage-light); }
+
+  .modal-body { padding: 24px 28px; }
+
+  .form-row { margin-bottom: 16px; }
+  .form-row label { display: block; font-size: 12px; font-weight: 600; color: var(--text-mid); margin-bottom: 6px; text-transform: uppercase; letter-spacing: 0.06em; }
+
+  .form-input, .form-select {
+    width: 100%;
+    border: 1px solid var(--cream-dark);
+    border-radius: 8px;
+    padding: 10px 14px;
+    font-size: 14px;
+    font-family: 'DM Sans', sans-serif;
+    color: var(--text-dark);
+    background: var(--cream);
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .form-input:focus, .form-select:focus { border-color: var(--sage); background: var(--white); }
+
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; }
+
+  .checkbox-group { display: flex; flex-direction: column; gap: 8px; }
+  .checkbox-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    font-size: 13px;
+    color: var(--text-dark);
+    cursor: pointer;
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 1px solid var(--cream-dark);
+    background: var(--cream);
+    transition: all 0.12s;
+  }
+  .checkbox-label:hover { border-color: var(--sage); background: #f0f7ea; }
+  .checkbox-label input { accent-color: var(--sage); width: 16px; height: 16px; }
+
+  .species-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+
+  .form-footer { display: flex; gap: 12px; margin-top: 4px; }
+
+  .btn-cancel {
+    flex: 1;
+    background: var(--cream);
+    border: 1px solid var(--cream-dark);
+    border-radius: 8px;
+    padding: 11px;
+    font-size: 14px;
+    font-family: 'DM Sans', sans-serif;
+    color: var(--text-mid);
+    cursor: pointer;
+    font-weight: 500;
+  }
+
+  .btn-submit {
+    flex: 2;
+    background: var(--gold);
+    border: none;
+    border-radius: 8px;
+    padding: 11px;
+    font-size: 14px;
+    font-family: 'DM Sans', sans-serif;
+    color: var(--forest);
+    cursor: pointer;
+    font-weight: 700;
+    transition: background 0.2s;
+  }
+  .btn-submit:hover { background: var(--gold-light); }
+
+  /* ── SUCCESS ── */
+  .success-state {
+    display: none;
+    padding: 40px 28px;
+    text-align: center;
+  }
+  .success-icon {
+    width: 64px;
+    height: 64px;
+    background: #eef5e8;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    margin: 0 auto 16px;
+    font-size: 28px;
+  }
+  .success-state h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px;
+    color: var(--forest);
+    margin-bottom: 8px;
+  }
+  .success-state p { font-size: 13px; color: var(--text-mid); line-height: 1.6; }
+
+  /* ── STATS BAR ── */
+  .stats-bar {
+    position: absolute;
+    bottom: 28px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: var(--white);
+    border-radius: 40px;
+    padding: 10px 28px;
+    display: flex;
+    gap: 28px;
+    align-items: center;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+    border: 1px solid var(--cream-dark);
+    z-index: 10;
+    pointer-events: none;
+  }
+
+  .stat { text-align: center; }
+  .stat-num { font-size: 18px; font-weight: 700; color: var(--forest); font-family: 'Playfair Display', serif; }
+  .stat-label { font-size: 10px; color: var(--text-light); text-transform: uppercase; letter-spacing: 0.07em; }
+
+  .stat-divider { width: 1px; height: 28px; background: var(--cream-dark); }
+
+  .map-wrap { position: relative; }
+
+  /* ── MAPBOX OVERRIDES ── */
+  .mapboxgl-ctrl-bottom-right { bottom: 80px !important; }
+
+  /* ── API KEY NOTICE ── */
+  .api-notice {
+    position: absolute;
+    inset: 0;
+    background: var(--cream);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 50;
+    flex-direction: column;
+    gap: 16px;
+    padding: 40px;
+    text-align: center;
+  }
+  .api-notice h3 {
+    font-family: 'Playfair Display', serif;
+    font-size: 20px;
+    color: var(--forest);
+  }
+  .api-notice p { font-size: 14px; color: var(--text-mid); max-width: 360px; line-height: 1.6; }
+  .api-key-input {
+    width: 100%;
+    max-width: 380px;
+    border: 1px solid var(--cream-dark);
+    border-radius: 8px;
+    padding: 11px 14px;
+    font-size: 14px;
+    font-family: 'DM Sans', sans-serif;
+    outline: none;
+    background: var(--white);
+  }
+  .api-key-input:focus { border-color: var(--sage); }
+  .btn-load-map {
+    background: var(--forest);
+    color: var(--sage-light);
+    border: none;
+    border-radius: 8px;
+    padding: 11px 28px;
+    font-size: 14px;
+    font-weight: 600;
+    font-family: 'DM Sans', sans-serif;
+    cursor: pointer;
+  }
+  .api-note { font-size: 11px; color: var(--text-light); }
+  .api-note a { color: var(--sage); }
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <a href="https://www.girlsthathunt.com" class="logo">Girls That Hunt <span>| Member Map</span></a>
+  <div class="header-right">
+    <div class="member-pill" id="headerCount">612 members mapped</div>
+    <button class="btn-join" onclick="openModal()">+ Add me to the map</button>
+  </div>
+</header>
+
+<div class="app-body">
+
+  <!-- SIDEBAR -->
+  <aside class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-title">Find Your Hunt Sister</div>
+      <div class="search-wrap">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
+        <input class="search-input" id="searchInput" type="text" placeholder="Search by name or state..." oninput="filterMembers()">
+      </div>
+      <div class="filters">
+        <span class="chip active" onclick="setFilter('all', this)">All</span>
+        <span class="chip" onclick="setFilter('partner', this)">Hunt partners</span>
+        <span class="chip" onclick="setFilter('mentor', this)">Mentors</span>
+        <span class="chip" onclick="setFilter('legacy', this)">Legacy members</span>
+      </div>
+    </div>
+
+    <div class="members-scroll" id="membersList"></div>
+
+    <div class="sidebar-footer">
+      <div class="count-line"><strong id="visibleCount">612</strong> members shown</div>
+    </div>
+  </aside>
+
+  <!-- MAP -->
+  <div class="map-wrap">
+    <div id="map"></div>
+
+    <div class="api-notice" id="apiNotice">
+      <div style="font-size:40px;">🗺️</div>
+      <h3>Enter your Mapbox API Key</h3>
+      <p>To display the interactive map with all 612 GTH member pins, enter a free Mapbox public token below. Get one free at <a href="https://account.mapbox.com" target="_blank">mapbox.com</a> — takes about 60 seconds.</p>
+      <input class="api-key-input" id="mapboxKeyInput" placeholder="pk.eyJ1IjoiZXhhbXBsZSIsImEiOiJ..." />
+      <button class="btn-load-map" onclick="initMap()">Load the Map</button>
+      <div class="api-note">Your key is only stored in your browser session and never sent anywhere.</div>
+    </div>
+
+    <div class="stats-bar">
+      <div class="stat"><div class="stat-num" id="totalMembers">612</div><div class="stat-label">Members</div></div>
+      <div class="stat-divider"></div>
+      <div class="stat"><div class="stat-num" id="totalStates">49</div><div class="stat-label">States & Provinces</div></div>
+      <div class="stat-divider"></div>
+      <div class="stat"><div class="stat-num">15K+</div><div class="stat-label">FB Community</div></div>
+    </div>
+  </div>
+
+</div>
+
+<!-- JOIN MODAL -->
+<div class="modal-overlay" id="modalOverlay" onclick="handleOverlayClick(event)">
+  <div class="modal">
+    <div class="modal-header">
+      <h2>Add Me to the Map</h2>
+      <p>Join 612 women hunters already on the map</p>
+    </div>
+    <div class="modal-body" id="formBody">
+      <div class="form-grid">
+        <div class="form-row">
+          <label>First Name *</label>
+          <input class="form-input" id="f_name" type="text" placeholder="Your first name">
+        </div>
+        <div class="form-row">
+          <label>Email *</label>
+          <input class="form-input" id="f_email" type="email" placeholder="you@email.com">
+        </div>
+      </div>
+      <div class="form-grid">
+        <div class="form-row">
+          <label>State / Province *</label>
+          <input class="form-input" id="f_state" type="text" placeholder="e.g. Montana">
+        </div>
+        <div class="form-row">
+          <label>Skill Level</label>
+          <select class="form-select" id="f_skill">
+            <option value="">Select...</option>
+            <option>Beginner (0–2 seasons)</option>
+            <option>Intermediate (3–7 seasons)</option>
+            <option>Experienced (8+ seasons)</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <label>What do you hunt? (select all that apply)</label>
+        <div class="species-grid">
+          <label class="checkbox-label"><input type="checkbox" value="Whitetail deer"> Whitetail deer</label>
+          <label class="checkbox-label"><input type="checkbox" value="Mule deer"> Mule deer</label>
+          <label class="checkbox-label"><input type="checkbox" value="Elk"> Elk</label>
+          <label class="checkbox-label"><input type="checkbox" value="Turkey"> Turkey</label>
+          <label class="checkbox-label"><input type="checkbox" value="Waterfowl"> Waterfowl</label>
+          <label class="checkbox-label"><input type="checkbox" value="Upland birds"> Upland birds</label>
+          <label class="checkbox-label"><input type="checkbox" value="Bear"> Bear</label>
+          <label class="checkbox-label"><input type="checkbox" value="Antelope"> Antelope</label>
+          <label class="checkbox-label"><input type="checkbox" value="Predators"> Predators</label>
+          <label class="checkbox-label"><input type="checkbox" value="Moose / Caribou"> Moose / Caribou</label>
+        </div>
+      </div>
+      <div class="form-row">
+        <label>I'm open to...</label>
+        <div class="checkbox-group">
+          <label class="checkbox-label"><input type="checkbox" id="f_partner"> Finding a hunt partner in my area</label>
+          <label class="checkbox-label"><input type="checkbox" id="f_mentor"> Mentoring a newer woman hunter</label>
+        </div>
+      </div>
+      <div class="form-footer">
+        <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+        <button class="btn-submit" onclick="submitForm()">Add Me to the Map →</button>
+      </div>
+    </div>
+    <div class="success-state" id="successState">
+      <div class="success-icon">🌿</div>
+      <h3>Welcome to the GTH Map!</h3>
+      <p>You've been added to the map. We'll send a confirmation to your email, and you'll officially be part of the GTH hunting community.</p>
+      <button class="btn-submit" style="margin-top:20px;border-radius:8px;padding:11px 24px;width:auto;" onclick="closeModal()">Done</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── DATA ──
+const LEGACY_PINS = [{"name":"Maria","lat":33.8265589,"lng":-112.2387957,"legacy":true},{"name":"Maria","lat":34.2062772,"lng":-112.3386278,"legacy":true},{"name":"Laura","lat":38.9715039,"lng":-92.7429062,"legacy":true},{"name":"Lynette","lat":38.0948233,"lng":-94.3613329,"legacy":true},{"name":"Amanda","lat":42.615604,"lng":-77.4025865,"legacy":true},{"name":"Kelly","lat":30.4984179,"lng":-94.9966067,"legacy":true},{"name":"Rebecca","lat":44.2921974,"lng":-105.5007098,"legacy":true},{"name":"Michelle","lat":41.8515225,"lng":-88.3150875,"legacy":true},{"name":"Debbie","lat":42.6075511,"lng":-113.7833496,"legacy":true},{"name":"Kerri","lat":51.0283015,"lng":-114.0754755,"legacy":true},{"name":"Kali","lat":41.7129676,"lng":-112.1671496,"legacy":true},{"name":"Kodi","lat":42.8963944,"lng":-82.7692725,"legacy":true},{"name":"Brenda","lat":37.6273126,"lng":-97.7806231,"legacy":true},{"name":"Melissa","lat":40.9485978,"lng":-79.7431711,"legacy":true},{"name":"Kristi","lat":40.6681895,"lng":-111.9409958,"legacy":true},{"name":"Janice","lat":35.1628858,"lng":-84.8809878,"legacy":true},{"name":"Annie","lat":41.1702851,"lng":-90.9977069,"legacy":true},{"name":"Denise","lat":40.1611914,"lng":-74.2099354,"legacy":true},{"name":"Jacque","lat":42.4576643,"lng":-98.6489144,"legacy":true},{"name":"Mary","lat":33.6593222,"lng":-79.5139085,"legacy":true},{"name":"Reina","lat":35.6244974,"lng":-117.6751182,"legacy":true},{"name":"Ali","lat":43.0959261,"lng":-79.0396406,"legacy":true},{"name":"Braillyn","lat":41.7998086,"lng":-85.4217263,"legacy":true},{"name":"Kaitlyn","lat":40.1554597,"lng":-75.8909952,"legacy":true},{"name":"Brandibella","lat":34.1433736,"lng":-109.9574516,"legacy":true},{"name":"Michelle","lat":42.8131143,"lng":-95.9742361,"legacy":true},{"name":"Denise","lat":42.0145114,"lng":-86.5201674,"legacy":true},{"name":"Lisa","lat":28.6098481,"lng":-82.0555544,"legacy":true},{"name":"Lesa","lat":36.5506405,"lng":-82.5586521,"legacy":true},{"name":"Jennifer","lat":43.4190463,"lng":-83.9487244,"legacy":true},{"name":"Lori","lat":37.2680466,"lng":-81.2204208,"legacy":true},{"name":"Jennifer","lat":33.8965565,"lng":-94.828692,"legacy":true},{"name":"Jade","lat":32.7061899,"lng":-103.1408824,"legacy":true},{"name":"Andrea","lat":38.049423,"lng":-87.2744903,"legacy":true},{"name":"Jeni","lat":38.7142699,"lng":-93.9909547,"legacy":true},{"name":"Shelly","lat":43.3798251,"lng":-84.6589022,"legacy":true},{"name":"Avery","lat":42.7424951,"lng":-91.2621739,"legacy":true},{"name":"Barbara","lat":30.2819434,"lng":-82.1207598,"legacy":true},{"name":"Lori","lat":41.4555694,"lng":-106.8080024,"legacy":true},{"name":"Jamie","lat":40.0377994,"lng":-76.3070437,"legacy":true},{"name":"Tonya","lat":32.5540528,"lng":-83.888192,"legacy":true},{"name":"Glenda","lat":34.2340891,"lng":-79.1489204,"legacy":true},{"name":"Abigail","lat":29.1412455,"lng":-98.90663,"legacy":true},{"name":"Sherie","lat":39.5226676,"lng":-119.8185691,"legacy":true},{"name":"Nancy","lat":38.8857264,"lng":-75.8290988,"legacy":true},{"name":"Donna","lat":39.5949574,"lng":-75.1707236,"legacy":true},{"name":"Connie","lat":39.7927957,"lng":-87.3705377,"legacy":true},{"name":"Tara","lat":41.845507,"lng":-70.9507729,"legacy":true},{"name":"Meagan","lat":43.3962613,"lng":-85.4691917,"legacy":true},{"name":"Cathy","lat":39.5227803,"lng":-81.0661295,"legacy":true},{"name":"Cindy","lat":39.5203339,"lng":-104.7660324,"legacy":true},{"name":"Cindy","lat":32.4586438,"lng":-83.7312753,"legacy":true},{"name":"Amber","lat":40.9576149,"lng":-92.0509319,"legacy":true},{"name":"Nichole","lat":44.7938069,"lng":-89.70465,"legacy":true},{"name":"Andrea","lat":41.1939924,"lng":-87.1996361,"legacy":true},{"name":"Tammi","lat":32.6538613,"lng":-83.7615473,"legacy":true},{"name":"Norma","lat":32.6949627,"lng":-114.628363,"legacy":true},{"name":"Tammy","lat":33.2110906,"lng":-97.7566515,"legacy":true},{"name":"Michaela","lat":46.8284682,"lng":-100.8920863,"legacy":true},{"name":"Mary","lat":32.7604813,"lng":-97.8001044,"legacy":true},{"name":"Julie","lat":42.6676651,"lng":-86.003186,"legacy":true},{"name":"Katie","lat":44.0794181,"lng":-98.5703568,"legacy":true},{"name":"Cathy","lat":39.4037186,"lng":-105.4739871,"legacy":true},{"name":"Michelle","lat":41.3336774,"lng":-92.2053284,"legacy":true},{"name":"Beth","lat":42.4038217,"lng":-82.1981888,"legacy":true},{"name":"Monica","lat":29.9713682,"lng":-95.6959131,"legacy":true},{"name":"Sam","lat":42.4053859,"lng":-78.6120584,"legacy":true},{"name":"Sarah","lat":34.6145661,"lng":-93.3433755,"legacy":true},{"name":"Kelly","lat":40.0188292,"lng":-78.5043232,"legacy":true},{"name":"Heather","lat":38.3905904,"lng":-84.2926987,"legacy":true},{"name":"Maria","lat":32.8346943,"lng":-116.7666512,"legacy":true},{"name":"Eden","lat":44.2996499,"lng":-120.8353758,"legacy":true},{"name":"Amanda","lat":35.0896223,"lng":-92.4361611,"legacy":true},{"name":"Liberty","lat":41.4745555,"lng":-84.5524918,"legacy":true},{"name":"Heather","lat":37.4767221,"lng":-87.8205033,"legacy":true},{"name":"Cyndy","lat":42.1890137,"lng":-120.346459,"legacy":true},{"name":"Nicole","lat":39.8925432,"lng":-85.0418787,"legacy":true},{"name":"JoJo","lat":46.1383095,"lng":-122.9410992,"legacy":true},{"name":"Lori","lat":43.9856792,"lng":-72.8468976,"legacy":true},{"name":"April","lat":60.1672896,"lng":-150.253472,"legacy":true},{"name":"Sharon","lat":38.4000765,"lng":-77.7293525,"legacy":true},{"name":"Marti","lat":37.624673,"lng":-109.479215,"legacy":true},{"name":"Courtney","lat":34.7213752,"lng":-80.7728513,"legacy":true},{"name":"Shannon","lat":30.4857581,"lng":-96.0600846,"legacy":true},{"name":"Kathleen","lat":58.688656,"lng":-156.6613059,"legacy":true},{"name":"Caitlin","lat":43.6635874,"lng":-116.6878731,"legacy":true},{"name":"Amber","lat":45.1491504,"lng":-94.680726,"legacy":true},{"name":"Melissa","lat":30.2046846,"lng":-103.2445464,"legacy":true},{"name":"Amy","lat":43.2756841,"lng":-82.621094,"legacy":true},{"name":"Rheagan","lat":34.3669013,"lng":-89.5186734,"legacy":true},{"name":"Tracy","lat":41.8412584,"lng":-85.6685752,"legacy":true},{"name":"Jessica","lat":44.3044848,"lng":-92.7904217,"legacy":true},{"name":"Leslie","lat":39.5354933,"lng":-119.7514919,"legacy":true},{"name":"Jennifer","lat":40.4438397,"lng":-76.4284001,"legacy":true},{"name":"Katie","lat":47.0531128,"lng":-122.2952299,"legacy":true},{"name":"Brittany","lat":34.481157,"lng":-87.2931576,"legacy":true},{"name":"Misty","lat":39.6530864,"lng":-78.7626509,"legacy":true},{"name":"Brenda","lat":38.3910339,"lng":-93.3346754,"legacy":true},{"name":"Anna","lat":45.5198257,"lng":-123.1119764,"legacy":true},{"name":"Darleen","lat":42.2410037,"lng":-79.0609603,"legacy":true},{"name":"Marsha","lat":46.5397922,"lng":-87.3994652,"legacy":true},{"name":"Alison","lat":39.4233484,"lng":-85.0126469,"legacy":true},{"name":"Krystal","lat":35.5602385,"lng":-89.7709244,"legacy":true},{"name":"Klaryssa","lat":39.7146808,"lng":-82.6000959,"legacy":true},{"name":"Vicky","lat":42.5561047,"lng":-114.4699597,"legacy":true},{"name":"Autumn","lat":44.3784795,"lng":-70.6474528,"legacy":true},{"name":"Monique","lat":35.1917373,"lng":-114.0528627,"legacy":true},{"name":"Jessika","lat":61.2169705,"lng":-149.8962437,"legacy":true},{"name":"Kristel","lat":40.0570578,"lng":-76.5523415,"legacy":true},{"name":"Kristi","lat":42.326164,"lng":-122.8763974,"legacy":true},{"name":"Kari","lat":30.3495032,"lng":-97.3703284,"legacy":true},{"name":"Tiffany","lat":34.7813023,"lng":-91.5809638,"legacy":true},{"name":"Alishia","lat":47.7186892,"lng":-116.9517129,"legacy":true},{"name":"Jami","lat":28.5564781,"lng":-82.3883441,"legacy":true},{"name":"Jazmin","lat":43.304861,"lng":-70.9783267,"legacy":true},{"name":"Kerisue","lat":45.7846554,"lng":-108.5022297,"legacy":true},{"name":"Andrea","lat":38.9279443,"lng":-86.3757602,"legacy":true},{"name":"Wendy","lat":35.6635848,"lng":-95.1980922,"legacy":true},{"name":"LaDonna","lat":39.1662244,"lng":-86.5265245,"legacy":true},{"name":"Jeanelle","lat":45.5662392,"lng":-93.2263212,"legacy":true},{"name":"Courtney","lat":30.7587916,"lng":-98.2291802,"legacy":true},{"name":"Nola Ann","lat":39.51848,"lng":-104.7595092,"legacy":true},{"name":"Stacy","lat":37.4931464,"lng":-87.1320937,"legacy":true},{"name":"Mari","lat":43.2135367,"lng":-75.456587,"legacy":true},{"name":"Georgia","lat":29.7809378,"lng":-96.1569051,"legacy":true},{"name":"Leigh","lat":38.8614242,"lng":-86.4878033,"legacy":true},{"name":"Nicole","lat":59.2343984,"lng":-135.4483604,"legacy":true},{"name":"Kayla","lat":30.7023674,"lng":-101.2015834,"legacy":true},{"name":"Ileana","lat":29.4239913,"lng":-98.497897,"legacy":true},{"name":"Johana","lat":41.6116105,"lng":-86.7227727,"legacy":true},{"name":"Sharon","lat":38.442672,"lng":-107.5568539,"legacy":true},{"name":"Kaitlyn","lat":39.236301,"lng":-119.5931254,"legacy":true},{"name":"Sharman","lat":45.3246557,"lng":-118.0877178,"legacy":true},{"name":"Sherry","lat":42.8102379,"lng":-89.8621237,"legacy":true},{"name":"Michelle","lat":34.8065099,"lng":-106.733901,"legacy":true},{"name":"Hanna","lat":43.6168642,"lng":-84.2485622,"legacy":true},{"name":"Maggie","lat":31.8891711,"lng":-90.8881466,"legacy":true},{"name":"Jennifer","lat":34.3908057,"lng":-110.5526429,"legacy":true},{"name":"Summer","lat":39.1591704,"lng":-75.5244063,"legacy":true},{"name":"Katheryn","lat":45.9788531,"lng":-87.0716198,"legacy":true},{"name":"Jamie","lat":41.5789152,"lng":-81.2130965,"legacy":true},{"name":"Tammy","lat":43.6550362,"lng":-71.9713492,"legacy":true},{"name":"Arlene","lat":39.530692,"lng":-79.0175983,"legacy":true},{"name":"Alicia","lat":45.2167352,"lng":-112.639021,"legacy":true},{"name":"Jayme","lat":37.9144749,"lng":-91.9027265,"legacy":true},{"name":"Kelsey","lat":47.7803902,"lng":-117.5512545,"legacy":true},{"name":"Heather","lat":43.2053029,"lng":-96.2949162,"legacy":true},{"name":"Laura","lat":30.8400023,"lng":-89.5343147,"legacy":true},{"name":"Cassie","lat":41.9007856,"lng":-74.8284026,"legacy":true},{"name":"Shannon","lat":47.2370674,"lng":-93.5299322,"legacy":true},{"name":"Karyn","lat":32.2416302,"lng":-92.715944,"legacy":true},{"name":"Lisa","lat":40.848544,"lng":-75.2917205,"legacy":true},{"name":"Autumn","lat":33.4260525,"lng":-94.0478652,"legacy":true},{"name":"Jennifer","lat":41.8392777,"lng":-89.4794735,"legacy":true},{"name":"Ashley","lat":29.6472753,"lng":-82.6068199,"legacy":true},{"name":"Amy","lat":44.6208856,"lng":-88.7619188,"legacy":true},{"name":"Carla","lat":35.0335968,"lng":-97.629483,"legacy":true},{"name":"Kristie","lat":41.143677,"lng":-81.8548835,"legacy":true},{"name":"Chassity","lat":38.9888319,"lng":-78.3587605,"legacy":true},{"name":"Tesa","lat":34.6618344,"lng":-106.7766218,"legacy":true},{"name":"Ashley","lat":45.3323969,"lng":-93.7422531,"legacy":true},{"name":"Jen","lat":45.4524096,"lng":-92.4545535,"legacy":true},{"name":"Melanie","lat":30.4875144,"lng":-90.9564381,"legacy":true},{"name":"Lynne","lat":48.7050558,"lng":-119.4395262,"legacy":true},{"name":"Susie","lat":36.3920351,"lng":-94.8830874,"legacy":true},{"name":"Hanna","lat":38.1070346,"lng":-103.5102705,"legacy":true},{"name":"Erin","lat":29.6517965,"lng":-82.3255825,"legacy":true},{"name":"Ann","lat":41.1982567,"lng":-74.4825512,"legacy":true},{"name":"Julie","lat":32.4315852,"lng":-80.671446,"legacy":true},{"name":"Lisa","lat":40.0179635,"lng":-78.9072557,"legacy":true},{"name":"Colleen","lat":44.4893271,"lng":-108.0561723,"legacy":true},{"name":"Heather","lat":36.1553271,"lng":-95.9968002,"legacy":true},{"name":"Leonda","lat":36.3115037,"lng":-95.6161219,"legacy":true},{"name":"Shaun","lat":30.4785269,"lng":-85.4196905,"legacy":true},{"name":"Amie","lat":41.3969418,"lng":-96.6114957,"legacy":true},{"name":"Kimberly","lat":41.8971888,"lng":-84.0374154,"legacy":true},{"name":"Beth","lat":26.9302427,"lng":-82.0457236,"legacy":true},{"name":"Judy","lat":45.0774344,"lng":-83.7162271,"legacy":true},{"name":"Amy","lat":39.8866684,"lng":-88.0661969,"legacy":true},{"name":"Karen","lat":51.4632272,"lng":-112.7112039,"legacy":true},{"name":"Stephanie","lat":40.5314062,"lng":-112.2983968,"legacy":true},{"name":"Stacy","lat":44.6848522,"lng":-83.4123908,"legacy":true},{"name":"Kara","lat":41.6711165,"lng":-86.6159825,"legacy":true},{"name":"Toni","lat":37.2946712,"lng":-80.0552534,"legacy":true},{"name":"Kelly","lat":29.8598829,"lng":-94.3090889,"legacy":true},{"name":"Dawn","lat":43.145438,"lng":-95.1444621,"legacy":true},{"name":"Pauletta","lat":37.894058,"lng":-80.5989281,"legacy":true},{"name":"Leslie","lat":37.7152039,"lng":-91.135177,"legacy":true},{"name":"Wendy","lat":32.9415232,"lng":-93.2986977,"legacy":true},{"name":"Gretchen","lat":42.4977314,"lng":-82.8970094,"legacy":true},{"name":"Heather","lat":33.4658684,"lng":-112.0729508,"legacy":true},{"name":"Mckenzie","lat":29.4684955,"lng":-98.0959511,"legacy":true},{"name":"Shelley","lat":30.5978502,"lng":-81.8260607,"legacy":true},{"name":"Terry","lat":47.8159532,"lng":-92.2384238,"legacy":true},{"name":"Desiree","lat":44.7242788,"lng":-73.2926967,"legacy":true},{"name":"Michelle","lat":47.802605,"lng":-103.2836865,"legacy":true},{"name":"Devon","lat":39.7478445,"lng":-75.310551,"legacy":true},{"name":"Lacey","lat":36.9195756,"lng":-94.2554026,"legacy":true},{"name":"Lori","lat":43.6433898,"lng":-76.0684767,"legacy":true},{"name":"Andi","lat":42.9133909,"lng":-82.4875111,"legacy":true},{"name":"September","lat":32.2632693,"lng":-110.9758155,"legacy":true},{"name":"Sharon","lat":37.473998,"lng":-108.5045603,"legacy":true},{"name":"Candice","lat":35.8671258,"lng":-83.3822347,"legacy":true},{"name":"Nicole","lat":42.7655008,"lng":-71.4689013,"legacy":true},{"name":"Renee","lat":42.7158525,"lng":-78.8292915,"legacy":true},{"name":"Tiffany","lat":48.3858037,"lng":-114.0612819,"legacy":true},{"name":"Dolores","lat":39.3026185,"lng":-93.6774871,"legacy":true},{"name":"Tracey","lat":33.9491677,"lng":-83.5346513,"legacy":true},{"name":"Veronica","lat":28.4841223,"lng":-82.5371826,"legacy":true},{"name":"Amanda","lat":43.9225255,"lng":-90.2716073,"legacy":true},{"name":"Samantha","lat":48.7634193,"lng":-101.5132305,"legacy":true},{"name":"Carmen","lat":45.3334225,"lng":-93.7448281,"legacy":true},{"name":"Christine","lat":43.3456624,"lng":-75.3894462,"legacy":true},{"name":"Daryl","lat":30.1698654,"lng":-99.3724946,"legacy":true},{"name":"Bethany","lat":35.3841952,"lng":-92.2160305,"legacy":true},{"name":"Brandie","lat":48.2334124,"lng":-101.2930114,"legacy":true},{"name":"Mary","lat":45.1259356,"lng":-94.5278638,"legacy":true},{"name":"Evon","lat":44.1164014,"lng":-93.7076332,"legacy":true},{"name":"Kathrene","lat":34.2934578,"lng":-91.3352664,"legacy":true},{"name":"Mishon","lat":38.9413503,"lng":-119.7497095,"legacy":true},{"name":"Ashley","lat":36.5956615,"lng":-82.1890198,"legacy":true},{"name":"Terri","lat":46.8447821,"lng":-68.1975632,"legacy":true},{"name":"Lynsey","lat":44.0079054,"lng":-116.9163681,"legacy":true},{"name":"Anna","lat":39.7478068,"lng":-122.1964023,"legacy":true},{"name":"Raylene","lat":47.5291991,"lng":-114.1015531,"legacy":true},{"name":"Agatha","lat":33.894502,"lng":-109.9474978,"legacy":true},{"name":"Heather","lat":32.1111445,"lng":-98.5359132,"legacy":true},{"name":"Kari","lat":40.5316671,"lng":-112.2978818,"legacy":true},{"name":"Tina","lat":39.198604,"lng":-76.7628133,"legacy":true},{"name":"Anna","lat":44.9243413,"lng":-92.9596084,"legacy":true},{"name":"Tacy","lat":44.4910277,"lng":-103.8595009,"legacy":true},{"name":"Jennifer","lat":45.8405569,"lng":-119.2893339,"legacy":true},{"name":"Jennifer","lat":45.1687293,"lng":-69.3841674,"legacy":true},{"name":"Lisa","lat":29.4241377,"lng":-98.4946355,"legacy":true},{"name":"Carina","lat":28.5491281,"lng":-81.7726464,"legacy":true},{"name":"Corrine","lat":43.011035,"lng":-88.2300866,"legacy":true},{"name":"Suzanne Nicole","lat":32.6544787,"lng":-83.759659,"legacy":true},{"name":"Brittany","lat":35.869002,"lng":-92.1179862,"legacy":true},{"name":"Denise","lat":29.795111,"lng":-98.7314772,"legacy":true},{"name":"Lyssa","lat":34.1208011,"lng":-93.0536782,"legacy":true},{"name":"Brianna","lat":33.7404849,"lng":-80.4633901,"legacy":true},{"name":"Madison","lat":35.8832351,"lng":-80.0819786,"legacy":true},{"name":"Laurie","lat":39.1024708,"lng":-94.5812127,"legacy":true},{"name":"Jeanette","lat":35.3083552,"lng":-77.1542954,"legacy":true},{"name":"Sue","lat":40.178749,"lng":-122.2360542,"legacy":true},{"name":"Michele","lat":42.8861792,"lng":-78.8788619,"legacy":true},{"name":"Mariah","lat":41.4047742,"lng":-81.7226279,"legacy":true},{"name":"Kathleen","lat":30.3760264,"lng":-89.7479283,"legacy":true},{"name":"Niki","lat":38.3305918,"lng":-80.6532962,"legacy":true},{"name":"Rebecca","lat":38.7585415,"lng":-83.0290584,"legacy":true},{"name":"Alicia","lat":36.3885488,"lng":-86.4470962,"legacy":true},{"name":"Carolyn","lat":37.6987921,"lng":-93.7958238,"legacy":true},{"name":"Sarah","lat":34.3628303,"lng":-92.8127009,"legacy":true},{"name":"Amber","lat":43.7067824,"lng":-73.0284463,"legacy":true},{"name":"Dana","lat":32.7544139,"lng":-97.3305177,"legacy":true},{"name":"Kelly","lat":41.6064745,"lng":-80.4941936,"legacy":true},{"name":"Carri","lat":61.5995726,"lng":-149.1135226,"legacy":true},{"name":"Kat","lat":33.7222363,"lng":-116.374645,"legacy":true},{"name":"Debra","lat":45.6791111,"lng":-111.0369384,"legacy":true},{"name":"Missy","lat":47.5052347,"lng":-111.3011116,"legacy":true},{"name":"Amanda","lat":48.0199507,"lng":-114.2278107,"legacy":true},{"name":"Jamie","lat":44.7748553,"lng":-117.8343034,"legacy":true},{"name":"Angela","lat":29.4754169,"lng":-82.860046,"legacy":true},{"name":"Krista","lat":33.1961377,"lng":-80.0132908,"legacy":true},{"name":"Sarah","lat":44.5138724,"lng":-88.0134972,"legacy":true},{"name":"Sheila","lat":39.241729,"lng":-83.7914838,"legacy":true},{"name":"Courtney","lat":45.3124466,"lng":-116.3590637,"legacy":true},{"name":"Vivian","lat":43.6166279,"lng":-116.2023123,"legacy":true},{"name":"Michelle","lat":39.1516961,"lng":-77.9823231,"legacy":true},{"name":"Cindi","lat":47.7669146,"lng":-116.7863221,"legacy":true},{"name":"Sarah","lat":26.5658943,"lng":-81.9497132,"legacy":true},{"name":"Jessie","lat":46.3914658,"lng":-95.3215809,"legacy":true},{"name":"Claire","lat":38.0323579,"lng":-85.342607,"legacy":true},{"name":"Jennie","lat":35.2484988,"lng":-81.341119,"legacy":true},{"name":"Julia","lat":43.653414,"lng":-90.2236189,"legacy":true},{"name":"Shells","lat":40.1753107,"lng":-80.2461825,"legacy":true},{"name":"Shawna","lat":43.7114604,"lng":-98.0298333,"legacy":true},{"name":"Bonnie","lat":41.3233406,"lng":-81.5709885,"legacy":true},{"name":"Rae","lat":30.2766167,"lng":-97.7420095,"legacy":true},{"name":"Vicki","lat":30.905944,"lng":-84.5754263,"legacy":true},{"name":"Emily","lat":45.7816182,"lng":-119.2176109,"legacy":true},{"name":"Sarah","lat":38.3265602,"lng":-88.7439007,"legacy":true},{"name":"Amanda","lat":32.440789,"lng":-84.279915,"legacy":true},{"name":"Christina","lat":45.9183103,"lng":-119.3424795,"legacy":true},{"name":"Michelle","lat":37.6462983,"lng":-91.53616,"legacy":true},{"name":"Donna","lat":40.9138131,"lng":-77.7784106,"legacy":true},{"name":"Alexa","lat":42.0996507,"lng":-75.9181776,"legacy":true},{"name":"Samantha","lat":38.6299912,"lng":-90.2002033,"legacy":true},{"name":"Martha","lat":30.5929791,"lng":-95.1293889,"legacy":true},{"name":"Kristina","lat":41.9544669,"lng":-75.280404,"legacy":true},{"name":"Amy","lat":45.2760642,"lng":-93.591669,"legacy":true},{"name":"Cyndi","lat":40.118289,"lng":-88.2434639,"legacy":true},{"name":"Kolena","lat":43.4989234,"lng":-73.7772721,"legacy":true},{"name":"Pam","lat":42.7506357,"lng":-95.5516824,"legacy":true},{"name":"Mary","lat":45.8306058,"lng":-94.2938877,"legacy":true},{"name":"Sarah","lat":40.4260691,"lng":-78.6200707,"legacy":true},{"name":"Gwen","lat":30.7824334,"lng":-89.1427517,"legacy":true},{"name":"Tammy","lat":43.3174847,"lng":-73.8482193,"legacy":true},{"name":"Christina","lat":44.5174238,"lng":-88.3326987,"legacy":true},{"name":"Aislinn","lat":30.0840366,"lng":-94.127908,"legacy":true},{"name":"Jo Jo","lat":29.7405439,"lng":-94.8441646,"legacy":true},{"name":"Alicia","lat":34.0148011,"lng":-83.8279539,"legacy":true},{"name":"Jennifer","lat":44.0905638,"lng":-87.6571263,"legacy":true},{"name":"Beth","lat":31.7325348,"lng":-84.170664,"legacy":true},{"name":"Kristy","lat":35.2072177,"lng":-89.8742968,"legacy":true},{"name":"Sara","lat":43.1854167,"lng":-84.1149227,"legacy":true},{"name":"Jessica","lat":44.7005388,"lng":-73.4529554,"legacy":true},{"name":"Amanda","lat":46.0141987,"lng":-91.484509,"legacy":true},{"name":"Ashley","lat":40.4781127,"lng":-77.1305454,"legacy":true},{"name":"Felicia","lat":42.0859417,"lng":-83.6825335,"legacy":true},{"name":"Babette","lat":39.9741486,"lng":-82.9976954,"legacy":true},{"name":"Crystal","lat":42.7347751,"lng":-76.4336653,"legacy":true},{"name":"Allie","lat":39.5241154,"lng":-87.1250913,"legacy":true},{"name":"Stacey","lat":36.9047225,"lng":-76.8997641,"legacy":true},{"name":"Lori","lat":46.4985387,"lng":-84.347832,"legacy":true},{"name":"Jane","lat":31.5816517,"lng":-92.5329093,"legacy":true},{"name":"Tracy","lat":43.1354824,"lng":-90.7053633,"legacy":true},{"name":"Cassie","lat":44.2447721,"lng":-86.3242232,"legacy":true},{"name":"Brittany","lat":32.9751839,"lng":-96.3324602,"legacy":true},{"name":"Kelsey","lat":44.1548105,"lng":-87.5694623,"legacy":true},{"name":"Jessica","lat":37.2227868,"lng":-77.2856433,"legacy":true},{"name":"Karen","lat":31.4889664,"lng":-94.9398681,"legacy":true},{"name":"Sheryl","lat":42.4604974,"lng":-72.8914122,"legacy":true},{"name":"Amy","lat":41.9123757,"lng":-86.0101,"legacy":true},{"name":"Katie","lat":42.9881833,"lng":-85.0710721,"legacy":true},{"name":"Debbie","lat":38.2721728,"lng":-87.6877559,"legacy":true},{"name":"Marley","lat":40.7996276,"lng":-78.0541726,"legacy":true},{"name":"Cindi","lat":40.0913225,"lng":-79.5875921,"legacy":true},{"name":"Amanda","lat":43.421829,"lng":-83.9507843,"legacy":true},{"name":"Shasta","lat":41.4022407,"lng":-99.641266,"legacy":true},{"name":"Kimberli","lat":38.1304651,"lng":-91.8435743,"legacy":true},{"name":"Christina","lat":35.1869102,"lng":-94.4137664,"legacy":true},{"name":"Jessica","lat":41.3317547,"lng":-80.7249743,"legacy":true},{"name":"Beth","lat":45.3326141,"lng":-92.1713497,"legacy":true},{"name":"Barbara","lat":30.4875144,"lng":-90.9564381,"legacy":true},{"name":"Melinda","lat":35.8951347,"lng":-80.5617779,"legacy":true},{"name":"Jennifer","lat":42.8522328,"lng":-106.2986555,"legacy":true},{"name":"Holly","lat":31.1286215,"lng":-84.1517693,"legacy":true},{"name":"Melinda","lat":39.3459282,"lng":-81.5228585,"legacy":true},{"name":"Chelsea","lat":35.2267488,"lng":-96.6706455,"legacy":true},{"name":"Jennifer","lat":36.0729245,"lng":-91.6146607,"legacy":true},{"name":"Jenna","lat":34.1559511,"lng":-99.2653429,"legacy":true},{"name":"Heidi","lat":46.9944555,"lng":-93.5987418,"legacy":true},{"name":"Natali","lat":39.0579057,"lng":-98.4738865,"legacy":true},{"name":"Tricia","lat":43.8067799,"lng":-70.8013439,"legacy":true},{"name":"Megan","lat":34.8764397,"lng":-83.9584829,"legacy":true},{"name":"Terri","lat":41.3373989,"lng":-75.5185342,"legacy":true},{"name":"Rach","lat":43.0433398,"lng":-87.9063849,"legacy":true},{"name":"Jessee","lat":34.542458,"lng":-112.4682901,"legacy":true},{"name":"Amy","lat":36.9859403,"lng":-84.6230394,"legacy":true},{"name":"Connie","lat":37.131562,"lng":-121.6543721,"legacy":true},{"name":"Jamie","lat":41.2692335,"lng":-110.9631239,"legacy":true},{"name":"Linda","lat":42.9623268,"lng":-88.0129541,"legacy":true},{"name":"Anna","lat":39.3303019,"lng":-82.1013555,"legacy":true},{"name":"Tricia","lat":31.717365,"lng":-83.2530936,"legacy":true},{"name":"Rachel","lat":44.1114872,"lng":-88.7129733,"legacy":true},{"name":"Nikki","lat":44.0066532,"lng":-97.1137601,"legacy":true},{"name":"Karen","lat":37.8931825,"lng":-86.2219588,"legacy":true},{"name":"Natalie","lat":44.0807284,"lng":-103.2316321,"legacy":true},{"name":"Tracy","lat":30.050405,"lng":-99.1403333,"legacy":true},{"name":"Denise","lat":46.4457593,"lng":-108.5417052,"legacy":true},{"name":"Cherokee","lat":36.9161105,"lng":-77.2464622,"legacy":true},{"name":"Tammi","lat":43.303358,"lng":-77.9211078,"legacy":true},{"name":"Debra","lat":40.3339811,"lng":-75.6375118,"legacy":true},{"name":"Jessie","lat":46.0654913,"lng":-118.3429956,"legacy":true},{"name":"Judy","lat":45.0779045,"lng":-83.7160555,"legacy":true},{"name":"Laura","lat":29.5834763,"lng":-95.760653,"legacy":true},{"name":"Jenny","lat":45.4520661,"lng":-92.5539384,"legacy":true},{"name":"Misty","lat":40.0236928,"lng":-92.4917181,"legacy":true},{"name":"Rochelle","lat":43.707763,"lng":-116.6205172,"legacy":true},{"name":"ReBecca","lat":45.4721271,"lng":-89.7301057,"legacy":true},{"name":"Morgan","lat":35.5337305,"lng":-82.9106007,"legacy":true},{"name":"Kaitlyn","lat":41.6564853,"lng":-80.4239237,"legacy":true},{"name":"Brigitte","lat":42.6630939,"lng":-82.8424637,"legacy":true},{"name":"Emily","lat":46.7481173,"lng":-92.2252099,"legacy":true},{"name":"Shelly","lat":35.6812988,"lng":-78.9355668,"legacy":true},{"name":"Destiny","lat":35.4963122,"lng":-85.0128999,"legacy":true},{"name":"Pam","lat":40.1074203,"lng":-85.6804153,"legacy":true},{"name":"Juliet","lat":27.2759473,"lng":-80.3577782,"legacy":true},{"name":"Missy","lat":42.9014334,"lng":-78.2566989,"legacy":true},{"name":"Rachel","lat":32.407556,"lng":-97.2116367,"legacy":true},{"name":"JoAnna","lat":42.2809781,"lng":-94.2909265,"legacy":true},{"name":"Rebecca","lat":40.856935,"lng":-99.9856078,"legacy":true},{"name":"Kammie","lat":35.6015056,"lng":-98.1186159,"legacy":true},{"name":"Jasmine","lat":31.5178956,"lng":-82.6348179,"legacy":true},{"name":"Meranda","lat":36.3208519,"lng":-87.8414143,"legacy":true},{"name":"Ashley","lat":38.838819,"lng":-104.8215309,"legacy":true},{"name":"Deana","lat":30.3180894,"lng":-95.4551421,"legacy":true},{"name":"Greta","lat":35.3632484,"lng":-84.294099,"legacy":true},{"name":"Kat","lat":45.3153683,"lng":-95.5999507,"legacy":true},{"name":"Annette","lat":36.1180643,"lng":-97.0582296,"legacy":true},{"name":"Joni","lat":45.0259745,"lng":-69.2897515,"legacy":true},{"name":"Aleisha","lat":41.2245254,"lng":-111.9737039,"legacy":true},{"name":"Hannah","lat":46.188137,"lng":-92.7825071,"legacy":true},{"name":"Brookelyn","lat":35.9348833,"lng":-84.5516709,"legacy":true},{"name":"Shannon","lat":31.0365504,"lng":-89.8047993,"legacy":true},{"name":"Angela","lat":34.8077137,"lng":-106.7335576,"legacy":true},{"name":"Wendy","lat":34.7602578,"lng":-77.4316395,"legacy":true},{"name":"Baybute","lat":37.6997428,"lng":-93.7959097,"legacy":true},{"name":"Michelle","lat":34.6194051,"lng":-93.7772143,"legacy":true},{"name":"Kathy","lat":44.2144161,"lng":-89.4923035,"legacy":true},{"name":"Kimberley","lat":32.986934,"lng":-80.1099113,"legacy":true},{"name":"Lori","lat":39.5661154,"lng":-80.6789583,"legacy":true},{"name":"Jody","lat":45.0629645,"lng":-83.4328699,"legacy":true},{"name":"Jeanette","lat":38.0146626,"lng":-82.5212642,"legacy":true},{"name":"Alicia","lat":42.5997797,"lng":-114.759549,"legacy":true},{"name":"Barbi","lat":38.5121071,"lng":-92.4401897,"legacy":true},{"name":"Ray","lat":37.4965555,"lng":-120.8460234,"legacy":true},{"name":"Megan","lat":43.6907569,"lng":-71.1170446,"legacy":true},{"name":"Missy","lat":38.9357645,"lng":-77.0818672,"legacy":true},{"name":"Vi","lat":42.3987136,"lng":-121.0428414,"legacy":true},{"name":"Kaleena","lat":46.5907639,"lng":-112.0392116,"legacy":true},{"name":"Hannah","lat":46.7312474,"lng":-120.6995247,"legacy":true},{"name":"Shar","lat":47.0683047,"lng":-110.395986,"legacy":true},{"name":"Kristina","lat":40.4202481,"lng":-77.1871583,"legacy":true},{"name":"Angie","lat":48.5517774,"lng":-109.6841037,"legacy":true},{"name":"Lynn","lat":39.0792644,"lng":-85.7188522,"legacy":true},{"name":"Jessie","lat":35.9509774,"lng":-85.0265867,"legacy":true},{"name":"Erika","lat":48.4126999,"lng":-114.3353876,"legacy":true},{"name":"Heather","lat":42.5702935,"lng":-83.3732062,"legacy":true},{"name":"Tracy","lat":39.8324746,"lng":-76.3274164,"legacy":true},{"name":"Angeline","lat":42.8612931,"lng":-106.2965956,"legacy":true},{"name":"Deborah","lat":43.0254107,"lng":-91.1814938,"legacy":true},{"name":"Jill","lat":39.0979415,"lng":-94.5791528,"legacy":true},{"name":"Krystie","lat":30.3520535,"lng":-97.3694701,"legacy":true},{"name":"Becky","lat":40.4174537,"lng":-86.8760258,"legacy":true},{"name":"Alysia","lat":33.3550794,"lng":-93.2959106,"legacy":true},{"name":"Sarah","lat":44.0374111,"lng":-89.5222629,"legacy":true},{"name":"Chloe","lat":39.553626,"lng":-84.2332022,"legacy":true},{"name":"Laura","lat":29.0507737,"lng":-82.461448,"legacy":true},{"name":"Ronda","lat":38.5786588,"lng":-92.1740779,"legacy":true},{"name":"Kat","lat":45.7869543,"lng":-108.4998264,"legacy":true},{"name":"Liz","lat":34.1991246,"lng":-79.7619843,"legacy":true},{"name":"Abbigail","lat":33.6956626,"lng":-80.211002,"legacy":true},{"name":"Cindy","lat":37.7544117,"lng":-100.0173879,"legacy":true},{"name":"Karen","lat":43.6581656,"lng":-79.3835512,"legacy":true},{"name":"Arizona","lat":34.2890319,"lng":-111.8395743,"legacy":true},{"name":"Sunday","lat":45.142845,"lng":-89.1520617,"legacy":true},{"name":"Courtney","lat":33.2208759,"lng":-97.1327917,"legacy":true},{"name":"Cathryn","lat":48.4196454,"lng":-114.0458807,"legacy":true},{"name":"Amanda","lat":44.0596521,"lng":-91.6676116,"legacy":true},{"name":"Stephanie","lat":41.1449255,"lng":-81.8553985,"legacy":true},{"name":"Chereen","lat":42.3987136,"lng":-121.0428414,"legacy":true},{"name":"Sharon","lat":31.5302401,"lng":-94.1120615,"legacy":true},{"name":"Samantha","lat":43.6612904,"lng":-70.2571768,"legacy":true},{"name":"Landrie","lat":37.6997428,"lng":-93.7959097,"legacy":true},{"name":"Chel","lat":48.8278387,"lng":-100.4457204,"legacy":true},{"name":"Jodie","lat":29.9989779,"lng":-92.2850091,"legacy":true},{"name":"Leslie","lat":30.2102052,"lng":-95.7507463,"legacy":true},{"name":"Michele","lat":44.8039121,"lng":-72.9461535,"legacy":true},{"name":"Michele","lat":41.3317547,"lng":-80.7249743,"legacy":true},{"name":"Brittany","lat":41.8483027,"lng":-91.6464188,"legacy":true},{"name":"Jordan","lat":40.4173631,"lng":-86.875399,"legacy":true},{"name":"Teala","lat":41.1640937,"lng":-112.12233,"legacy":true},{"name":"Ashlee","lat":37.2095041,"lng":-93.2923763,"legacy":true},{"name":"Joella","lat":36.1555293,"lng":-95.992295,"legacy":true},{"name":"Kathy","lat":32.341473,"lng":-90.3217038,"legacy":true},{"name":"Frieda","lat":31.9520668,"lng":-97.3215334,"legacy":true},{"name":"Marcie","lat":48.3883832,"lng":-115.5562161,"legacy":true},{"name":"Jennifer","lat":31.7088881,"lng":-111.0647793,"legacy":true},{"name":"Erin","lat":29.7646381,"lng":-95.3724523,"legacy":true},{"name":"Carmen","lat":44.5620858,"lng":-72.5985821,"legacy":true},{"name":"Belinda","lat":46.8146782,"lng":-88.6359988,"legacy":true},{"name":"Rebecca","lat":38.4969531,"lng":-84.5641481,"legacy":true},{"name":"Elissa","lat":42.1630245,"lng":-123.6482351,"legacy":true},{"name":"Monique","lat":30.9478398,"lng":-97.5384969,"legacy":true},{"name":"Vickie","lat":32.1170046,"lng":-95.6747257,"legacy":true},{"name":"Kara","lat":38.9822282,"lng":-94.6706275,"legacy":true},{"name":"DeAnna","lat":36.2776425,"lng":-92.5875079,"legacy":true},{"name":"Tonya","lat":32.5537461,"lng":-83.8870469,"legacy":true},{"name":"Kizzi","lat":32.6138683,"lng":-83.624202,"legacy":true},{"name":"Erika","lat":40.7071252,"lng":-77.314513,"legacy":true},{"name":"Maddy","lat":34.2814681,"lng":-119.2954794,"legacy":true},{"name":"Kim","lat":45.0349957,"lng":-99.1240044,"legacy":true},{"name":"Becky","lat":45.5151483,"lng":-90.7199737,"legacy":true},{"name":"Clo","lat":38.682755,"lng":-104.7009793,"legacy":true},{"name":"Amanda","lat":47.5363662,"lng":-96.2805607,"legacy":true},{"name":"Dani","lat":40.5548984,"lng":-81.9180201,"legacy":true},{"name":"Teri","lat":38.8863752,"lng":-94.5327282,"legacy":true},{"name":"Dannielle","lat":43.6459407,"lng":-108.2121444,"legacy":true},{"name":"Mallory","lat":42.9525362,"lng":-77.5902003,"legacy":true},{"name":"Jennifer","lat":44.9575845,"lng":-73.0510305,"legacy":true},{"name":"Stacie","lat":36.8572781,"lng":-88.3501829,"legacy":true},{"name":"Brandi","lat":29.902726,"lng":-90.3881484,"legacy":true},{"name":"Sarah","lat":33.4034963,"lng":-86.9547626,"legacy":true},{"name":"Emily","lat":30.4506259,"lng":-93.4333889,"legacy":true},{"name":"Suzanne","lat":39.360447,"lng":-104.5969232,"legacy":true},{"name":"Megan","lat":40.0067935,"lng":-75.7032543,"legacy":true},{"name":"Carleen","lat":35.6785986,"lng":-90.5243893,"legacy":true},{"name":"Dawn","lat":27.5877491,"lng":-82.4255427,"legacy":true},{"name":"Lesley","lat":32.5815077,"lng":-93.892693,"legacy":true},{"name":"Shelly","lat":40.156728,"lng":-76.2022178,"legacy":true},{"name":"Dawn","lat":45.8586885,"lng":-123.1978995,"legacy":true},{"name":"Cori","lat":46.8724634,"lng":-113.9941345,"legacy":true},{"name":"Holly","lat":45.5072712,"lng":-91.7390962,"legacy":true},{"name":"Jamie","lat":33.247712,"lng":-95.9114732,"legacy":true},{"name":"Karla","lat":35.6552114,"lng":-82.6963296,"legacy":true},{"name":"Loni","lat":46.972094,"lng":-118.6153278,"legacy":true},{"name":"Lindsey","lat":38.9479602,"lng":-90.9180148,"legacy":true},{"name":"Emily","lat":37.2245092,"lng":-95.7091825,"legacy":true},{"name":"Billie Jo","lat":30.6938322,"lng":-85.3921502,"legacy":true},{"name":"Julia","lat":43.2925875,"lng":-85.0813683,"legacy":true},{"name":"Carrie","lat":47.9480751,"lng":-116.7081166,"legacy":true},{"name":"Michaela","lat":41.878047,"lng":-93.8157918,"legacy":true},{"name":"Amy","lat":40.3932283,"lng":-82.48554,"legacy":true},{"name":"Kris","lat":64.840343,"lng":-147.7218743,"legacy":true},{"name":"Missy","lat":39.5902464,"lng":-76.3630331,"legacy":true},{"name":"Dennise","lat":38.2815357,"lng":-80.8527987,"legacy":true},{"name":"Rhonda","lat":36.9046539,"lng":-76.8990345,"legacy":true},{"name":"Lisa","lat":38.0504755,"lng":-85.545742,"legacy":true},{"name":"Linda","lat":39.6146434,"lng":-105.0162945,"legacy":true},{"name":"Nichole","lat":45.8771024,"lng":-93.2939314,"legacy":true},{"name":"Bridget","lat":44.328544,"lng":-72.9874826,"legacy":true},{"name":"Michelle","lat":28.2495065,"lng":-81.2817114,"legacy":true},{"name":"Jasmine","lat":44.8472939,"lng":-85.7946885,"legacy":true},{"name":"Becky","lat":40.4402845,"lng":-81.6989509,"legacy":true},{"name":"Denise","lat":36.5298584,"lng":-95.7013954,"legacy":true},{"name":"Christy","lat":36.2896239,"lng":-97.2883865,"legacy":true},{"name":"Trisha","lat":44.8014028,"lng":-68.7721566,"legacy":true},{"name":"Chelsea","lat":45.3033241,"lng":-93.5546665,"legacy":true},{"name":"Brandy","lat":44.2937947,"lng":-105.5037997,"legacy":true},{"name":"Nancy","lat":44.6307117,"lng":-69.8298419,"legacy":true},{"name":"Brandi","lat":43.7075769,"lng":-116.6197447,"legacy":true},{"name":"Kellie","lat":38.7807285,"lng":-95.5572483,"legacy":true},{"name":"Sharlin","lat":35.250071,"lng":-112.1906064,"legacy":true},{"name":"Shayla","lat":33.5807843,"lng":-94.9154866,"legacy":true},{"name":"Madeline","lat":29.7623197,"lng":-95.3705019,"legacy":true},{"name":"Becky","lat":31.7652548,"lng":-106.4863155,"legacy":true},{"name":"Dianna","lat":40.8618989,"lng":-90.201554,"legacy":true},{"name":"Shelly","lat":39.1656698,"lng":-86.5255804,"legacy":true},{"name":"Jennifer","lat":33.0658923,"lng":-96.2293654,"legacy":true},{"name":"Melissa","lat":41.5204749,"lng":-88.2016075,"legacy":true},{"name":"Yvonne","lat":41.2595206,"lng":-80.4719138,"legacy":true},{"name":"Kerri","lat":41.3300271,"lng":-91.2361988,"legacy":true},{"name":"Magi","lat":45.5210117,"lng":-123.0597245,"legacy":true},{"name":"Chelsea","lat":39.6249128,"lng":-89.0191485,"legacy":true},{"name":"Teresa","lat":36.5209772,"lng":-106.4902234,"legacy":true},{"name":"Katelyn","lat":53.818383,"lng":-113.5642527,"legacy":true},{"name":"Amanda","lat":35.4141569,"lng":-81.5631268,"legacy":true},{"name":"Julie","lat":42.9913162,"lng":-71.1430919,"legacy":true},{"name":"Heather","lat":43.8059746,"lng":-70.8023738,"legacy":true},{"name":"Tyra","lat":42.9923207,"lng":-71.1418903,"legacy":true},{"name":"DL","lat":41.1367982,"lng":-80.0093074,"legacy":true},{"name":"Margaret","lat":43.3233026,"lng":-76.4167662,"legacy":true},{"name":"Ronda","lat":37.9708998,"lng":-75.4618575,"legacy":true},{"name":"Sandy","lat":46.7310415,"lng":-120.699353,"legacy":true},{"name":"Angel","lat":48.1672025,"lng":-118.9748725,"legacy":true},{"name":"Sommer","lat":34.5057323,"lng":-112.2431765,"legacy":true},{"name":"Henrietta","lat":41.890752,"lng":-80.3664287,"legacy":true},{"name":"Rhonda","lat":36.5947273,"lng":-82.1876465,"legacy":true},{"name":"Ellen","lat":41.9940407,"lng":-70.7282434,"legacy":true},{"name":"Andrea","lat":43.5486181,"lng":-96.7307068,"legacy":true},{"name":"Kathi","lat":48.1361486,"lng":-123.7343637,"legacy":true},{"name":"Stephanie","lat":48.4289966,"lng":-118.1709302,"legacy":true},{"name":"Shannon","lat":43.797498,"lng":-90.0775685,"legacy":true},{"name":"Jessica","lat":35.2351412,"lng":-97.7366833,"legacy":true},{"name":"Jillian","lat":43.0368823,"lng":-73.9381321,"legacy":true},{"name":"Lacie","lat":40.8811343,"lng":-90.2268076,"legacy":true},{"name":"Joann","lat":38.0749054,"lng":-84.7318081,"legacy":true},{"name":"Patti","lat":30.3133474,"lng":-95.449649,"legacy":true},{"name":"Tricia","lat":44.1113023,"lng":-88.7122008,"legacy":true},{"name":"Taylor","lat":33.6957495,"lng":-78.8805241,"legacy":true},{"name":"Heather","lat":47.25476,"lng":-122.4451525,"legacy":true},{"name":"Jessica","lat":33.0896859,"lng":-93.3140581,"legacy":true},{"name":"Emily","lat":35.9555567,"lng":-80.7721139,"legacy":true},{"name":"Kimberlee","lat":28.7879765,"lng":-82.1334215,"legacy":true},{"name":"Shannon","lat":35.3744119,"lng":-119.0200603,"legacy":true},{"name":"Christy","lat":37.2239624,"lng":-95.7060926,"legacy":true},{"name":"Amy","lat":32.6896375,"lng":-80.8516343,"legacy":true},{"name":"Katrina","lat":40.8510545,"lng":-76.5807776,"legacy":true},{"name":"Sarah","lat":47.3088326,"lng":-122.0031921,"legacy":true},{"name":"Samantha","lat":40.8702327,"lng":-123.5229093,"legacy":true},{"name":"Lauren","lat":42.7846327,"lng":-83.2397353,"legacy":true},{"name":"Jessica","lat":40.8840464,"lng":-85.4978953,"legacy":true},{"name":"Kristalynn","lat":37.8227046,"lng":-121.276837,"legacy":true},{"name":"Judy","lat":44.0807592,"lng":-103.2305592,"legacy":true},{"name":"Jennifer","lat":31.0416858,"lng":-83.0751263,"legacy":true},{"name":"Briana","lat":50.852351,"lng":-113.4696906,"legacy":true},{"name":"Ellen","lat":38.951711,"lng":-76.5482285,"legacy":true},{"name":"Russella","lat":42.7603199,"lng":-105.3823865,"legacy":true},{"name":"Becky","lat":35.40181,"lng":-93.1143935,"legacy":true},{"name":"Lena","lat":44.822973,"lng":-89.5906917,"legacy":true},{"name":"Candy","lat":32.4647524,"lng":-86.4596535,"legacy":true},{"name":"Kandi","lat":42.4671111,"lng":-70.9496145,"legacy":true},{"name":"Mandy","lat":38.2120544,"lng":-89.9943096,"legacy":true},{"name":"Kayla Ann","lat":48.2679017,"lng":-100.8426598,"legacy":true},{"name":"Tracy","lat":34.2305157,"lng":-78.0344176,"legacy":true},{"name":"Kimberly","lat":34.7587387,"lng":-112.4539316,"legacy":true},{"name":"Jamie","lat":41.5520475,"lng":-84.5231247,"legacy":true},{"name":"Stacy","lat":32.752701,"lng":-97.3274128,"legacy":true},{"name":"Kayla","lat":46.8721352,"lng":-113.9925956,"legacy":true},{"name":"DeLaina","lat":27.8030123,"lng":-97.3970532,"legacy":true},{"name":"Melissa","lat":34.744779,"lng":-120.2783271,"legacy":true},{"name":"Calla","lat":53.5414239,"lng":-113.2957212,"legacy":true},{"name":"Wendy","lat":40.2885013,"lng":-87.2940775,"legacy":true},{"name":"Stephanie","lat":34.5521029,"lng":-80.5836851,"legacy":true},{"name":"Spencer","lat":36.7108259,"lng":-81.977852,"legacy":true},{"name":"Vanessa","lat":42.8442805,"lng":-82.8844124,"legacy":true},{"name":"Bobbie","lat":39.0252728,"lng":-99.879608,"legacy":true},{"name":"Mariah","lat":42.6154406,"lng":-122.812105,"legacy":true},{"name":"Angela","lat":36.4879671,"lng":-87.8384918,"legacy":true},{"name":"Nicole","lat":33.376782,"lng":-87.0924459,"legacy":true},{"name":"Patty","lat":43.2265273,"lng":-78.0267118,"legacy":true},{"name":"Autumn","lat":43.9706083,"lng":-89.8168351,"legacy":true},{"name":"Kiley","lat":36.2052256,"lng":-94.92248,"legacy":true},{"name":"Darcie","lat":46.0644194,"lng":-118.342309,"legacy":true},{"name":"Amber","lat":47.2998431,"lng":-96.5154363,"legacy":true},{"name":"Gail","lat":28.85225,"lng":-82.4877657,"legacy":true},{"name":"Paula","lat":36.0789472,"lng":-87.3882223,"legacy":true},{"name":"Caitlyn","lat":31.9393609,"lng":-81.3038661,"legacy":true},{"name":"Carla","lat":35.0877826,"lng":-84.0349706,"legacy":true},{"name":"6A - Arizona","lat":35.1292975,"lng":-111.6535776,"legacy":true}];
+
+// New members added via form (session only)
+let newMembers = [];
+let allMembers = [...LEGACY_PINS];
+let filteredMembers = [...allMembers];
+let activeFilter = 'all';
+let map = null;
+
+// Avatar colors cycling
+const avatarColors = ['#3a6a1a','#8a5a10','#2a4aaa','#6a1a3a','#1a5a6a','#6a4a1a'];
+function avatarColor(i) { return avatarColors[i % avatarColors.length]; }
+function initials(name) { return name.trim().split(' ').map(w=>w[0]).join('').toUpperCase().slice(0,2); }
+
+// ── SIDEBAR RENDER ──
+function renderList() {
+  const list = document.getElementById('membersList');
+  let html = '';
+  filteredMembers.forEach((m, i) => {
+    const isLegacy = m.legacy && !m.species;
+    const color = avatarColor(i);
+    const tags = [];
+    if (m.partner) tags.push('<span class="tag tag-partner">Hunt partner</span>');
+    if (m.mentor) tags.push('<span class="tag tag-mentor">Mentor</span>');
+    if (m.species && m.species.length) m.species.slice(0,2).forEach(s => tags.push(`<span class="tag tag-species">${s}</span>`));
+    if (isLegacy) tags.push('<span class="tag tag-legacy">Legacy member</span>');
+    const loc = m.state || 'Location on map';
+    html += `<div class="member-item ${m._highlighted?'highlighted':''}" onclick="focusMember(${allMembers.indexOf(m)})">
+      <div class="avatar" style="background:${color}">${initials(m.name)}</div>
+      <div class="member-info">
+        <div class="member-name">${m.name}</div>
+        <div class="member-location">${loc}</div>
+        <div class="member-tags">${tags.join('')}</div>
+      </div>
+    </div>`;
+  });
+  list.innerHTML = html || '<div style="padding:20px;text-align:center;color:#7a8a7a;font-size:13px;">No members found</div>';
+  document.getElementById('visibleCount').textContent = filteredMembers.length;
+}
+
+function filterMembers() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  filteredMembers = allMembers.filter(m => {
+    const matchQ = !q || m.name.toLowerCase().includes(q) || (m.state||'').toLowerCase().includes(q);
+    const matchFilter = activeFilter === 'all' || (activeFilter === 'partner' && m.partner) || (activeFilter === 'mentor' && m.mentor) || (activeFilter === 'legacy' && m.legacy && !m.species);
+    return matchQ && matchFilter;
+  });
+  renderList();
+}
+
+function setFilter(f, el) {
+  activeFilter = f;
+  document.querySelectorAll('.chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  filterMembers();
+}
+
+function focusMember(idx) {
+  if (!map) return;
+  const m = allMembers[idx];
+  map.flyTo({ center: [m.lng, m.lat], zoom: 9, speed: 1.4 });
+  showPopup(m);
+}
+
+// ── MAP ──
+function initMap() {
+  const key = document.getElementById('mapboxKeyInput').value.trim();
+  if (!key || !key.startsWith('pk.')) {
+    alert('Please enter a valid Mapbox public token starting with pk.');
+    return;
+  }
+  mapboxgl.accessToken = key;
+  document.getElementById('apiNotice').style.display = 'none';
+
+  map = new mapboxgl.Map({
+    container: 'map',
+    style: 'mapbox://styles/mapbox/outdoors-v12',
+    center: [-96, 39],
+    zoom: 3.8,
+    minZoom: 2
+  });
+
+  map.addControl(new mapboxgl.NavigationControl(), 'top-right');
+
+  map.on('load', () => {
+    addPinsToMap();
+    renderList();
+  });
+}
+
+function addPinsToMap() {
+  const features = allMembers.map((m, i) => ({
+    type: 'Feature',
+    geometry: { type: 'Point', coordinates: [m.lng, m.lat] },
+    properties: { idx: i, name: m.name, legacy: !!(m.legacy && !m.species), partner: !!m.partner, mentor: !!m.mentor }
+  }));
+
+  map.addSource('members', {
+    type: 'geojson',
+    data: { type: 'FeatureCollection', features },
+    cluster: true,
+    clusterMaxZoom: 8,
+    clusterRadius: 40
+  });
+
+  // Clusters
+  map.addLayer({
+    id: 'clusters',
+    type: 'circle',
+    source: 'members',
+    filter: ['has', 'point_count'],
+    paint: {
+      'circle-color': '#1a2e1a',
+      'circle-radius': ['step', ['get', 'point_count'], 18, 10, 24, 30, 30],
+      'circle-stroke-width': 2,
+      'circle-stroke-color': '#c8993a'
+    }
+  });
+
+  map.addLayer({
+    id: 'cluster-count',
+    type: 'symbol',
+    source: 'members',
+    filter: ['has', 'point_count'],
+    layout: {
+      'text-field': '{point_count_abbreviated}',
+      'text-font': ['DIN Offc Pro Medium', 'Arial Unicode MS Bold'],
+      'text-size': 12
+    },
+    paint: { 'text-color': '#a8cc8a' }
+  });
+
+  // Individual pins
+  map.addLayer({
+    id: 'unclustered-point',
+    type: 'circle',
+    source: 'members',
+    filter: ['!', ['has', 'point_count']],
+    paint: {
+      'circle-color': [
+        'case',
+        ['get', 'partner'], '#c8993a',
+        ['get', 'mentor'], '#4a7aaa',
+        '#3a6a1a'
+      ],
+      'circle-radius': 7,
+      'circle-stroke-width': 2,
+      'circle-stroke-color': '#ffffff'
+    }
+  });
+
+  // Click cluster
+  map.on('click', 'clusters', (e) => {
+    const features = map.queryRenderedFeatures(e.point, { layers: ['clusters'] });
+    const clusterId = features[0].properties.cluster_id;
+    map.getSource('members').getClusterExpansionZoom(clusterId, (err, zoom) => {
+      if (err) return;
+      map.easeTo({ center: features[0].geometry.coordinates, zoom });
+    });
+  });
+
+  // Click pin
+  map.on('click', 'unclustered-point', (e) => {
+    const idx = e.features[0].properties.idx;
+    showPopup(allMembers[idx], e.features[0].geometry.coordinates);
+  });
+
+  map.on('mouseenter', 'clusters', () => { map.getCanvas().style.cursor = 'pointer'; });
+  map.on('mouseleave', 'clusters', () => { map.getCanvas().style.cursor = ''; });
+  map.on('mouseenter', 'unclustered-point', () => { map.getCanvas().style.cursor = 'pointer'; });
+  map.on('mouseleave', 'unclustered-point', () => { map.getCanvas().style.cursor = ''; });
+}
+
+let activePopup = null;
+function showPopup(m, coords) {
+  if (!map) return;
+  const c = coords || [m.lng, m.lat];
+  const isLegacy = m.legacy && !m.species;
+  const color = avatarColor(allMembers.indexOf(m));
+
+  let bodyHtml = '';
+  if (isLegacy) {
+    bodyHtml = `<div class="popup-legacy">Original GTH map member. No profile yet.</div>
+      <button class="btn-connect" onclick="openModal()">Claim this pin & add profile</button>`;
+  } else {
+    const speciesTags = (m.species||[]).map(s=>`<span class="tag tag-species">${s}</span>`).join('');
+    const roleTags = [(m.partner?'<span class="tag tag-partner">Hunt partner</span>':''),(m.mentor?'<span class="tag tag-mentor">Mentor</span>':'')].join('');
+    bodyHtml = `
+      ${m.skill ? `<div class="popup-field"><div class="popup-label">Skill level</div><div class="popup-value">${m.skill}</div></div>` : ''}
+      ${speciesTags ? `<div class="popup-field"><div class="popup-label">Hunts</div><div class="popup-tags">${speciesTags}</div></div>` : ''}
+      ${roleTags ? `<div class="popup-field"><div class="popup-label">Open to</div><div class="popup-tags">${roleTags}</div></div>` : ''}
+      <button class="btn-connect pro-only">🔒 Connect (PRO members only)</button>
+      <div class="pro-lock" onclick="openModal()">Upgrade to PRO to connect →</div>`;
+  }
+
+  const html = `<div class="popup-inner">
+    <div class="popup-header">
+      <div class="popup-avatar" style="background:${color};color:#1a2e1a">${initials(m.name)}</div>
+      <div>
+        <div class="popup-name">${m.name}</div>
+        <div class="popup-state">${m.state || 'GTH Member'}</div>
+      </div>
+    </div>
+    <div class="popup-body">${bodyHtml}</div>
+  </div>`;
+
+  if (activePopup) activePopup.remove();
+  activePopup = new mapboxgl.Popup({ offset: 14, closeButton: true, maxWidth: '260px' })
+    .setLngLat(c)
+    .setHTML(html)
+    .addTo(map);
+}
+
+// ── MODAL ──
+function openModal() { document.getElementById('modalOverlay').classList.add('open'); }
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+  document.getElementById('formBody').style.display = 'block';
+  document.getElementById('successState').style.display = 'none';
+}
+function handleOverlayClick(e) { if (e.target === document.getElementById('modalOverlay')) closeModal(); }
+
+function submitForm() {
+  const name = document.getElementById('f_name').value.trim();
+  const email = document.getElementById('f_email').value.trim();
+  const state = document.getElementById('f_state').value.trim();
+  if (!name || !email || !state) { alert('Please fill in your name, email, and state.'); return; }
+
+  const species = [...document.querySelectorAll('.species-grid input:checked')].map(i=>i.value);
+  const skill = document.getElementById('f_skill').value;
+  const partner = document.getElementById('f_partner').checked;
+  const mentor = document.getElementById('f_mentor').checked;
+
+  const newMember = { name, email, state, species, skill, partner, mentor, legacy: false };
+  newMembers.push(newMember);
+  allMembers.push(newMember);
+
+  // Update count
+  document.getElementById('totalMembers').textContent = allMembers.length;
+  document.getElementById('headerCount').textContent = allMembers.length + ' members mapped';
+
+  // Add to map
+  if (map && map.getSource('members')) {
+    const features = allMembers.map((m, i) => ({
+      type: 'Feature',
+      geometry: { type: 'Point', coordinates: [m.lng||0, m.lat||0] },
+      properties: { idx: i, name: m.name, legacy: !!(m.legacy && !m.species), partner: !!m.partner, mentor: !!m.mentor }
+    }));
+    // Note: new member won't have coords yet — in production you'd geocode the state
+  }
+
+  filterMembers();
+  document.getElementById('formBody').style.display = 'none';
+  document.getElementById('successState').style.display = 'block';
+}
+
+// ── INIT ──
+renderList();
+</script>
+</body>
+</html>
